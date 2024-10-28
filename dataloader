@@ -1,0 +1,8 @@
+import csv
+def read_data(filename):
+    with open(filename, 'r') as csvfile:
+        datareader = csv.reader(csvfile, delimiter=',')
+        headers = next(datareader)
+        metadata = headers
+        traindata = [row for row in datareader]
+    return metadata, traindata
