@@ -1,0 +1,28 @@
+import numpy as np, math
+from data_loader import read_data
+class Node:
+    def _init_(self, attr=None, ans=None): self.attr, self.ans, self.kids = attr, ans, []
+def split(d, col, rm=False):
+    parts = {v: d[d[:, col] == v] for v in np.unique(d[:, col])}
+    return {v: np.delete(sub, col, axis=1) for v, sub in parts.items()} if rm else parts
+def ent(col):
+    _, counts = np.unique(col, return_counts=True)
+    probs = counts / len(col)
+    return -sum(p * math.log2(p) for p in probs if p > 0)
+def gain(d, col):
+    base_ent = ent(d[:, -1])
+    splits = split(d, col)
+    split_ent = sum((len(sub) / len(d)) * ent(sub[:, -1]) for sub in splits.values())
+    split_info = -sum((len(sub) / len(d)) * math.log2(len(sub) / len(d)) for sub in splits.values() if len(sub) > 0)
+    return (base_ent - split_ent) / split_info if split_info else 0
+def build(d, attrs):
+    if len(set(d[:, -1])) == 1: return Node(ans=d[0, -1])
+    best_col = np.argmax([gain(d, col) for col in range(d.shape[1] - 1)])
+    node = Node(attr=attrs[best_col])
+    node.kids = [(v, build(sub, np.delete(attrs, best_col))) for v, sub in split(d, best_col, True).items()]
+    return node
+def print_tree(n, lvl=0):
+    print(" " * lvl, n.ans or n.attr)
+    for v, kid in n.kids: print(" " * (lvl + 1), v); print_tree(kid, lvl + 2)
+attrs, data = read_data("tennis.csv")
+print_tree(build(np.array(data), attrs))
