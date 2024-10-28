@@ -1,0 +1,91 @@
+% Declare the dynamic predicate visited_state/2
+:- dynamic(visited_state/2).
+
+% Base state where we achieve the goal of 2 gallons in the 4-gallon jug
+state(2, 0).
+
+% Fill the 4-gallon jug if it's not already full
+state(X, Y) :-
+    X < 4,
+    \+ visited_state(4, Y),
+    asserta(visited_state(4, Y)),
+    write('Fill the 4-Gallon Jug: ('), write(X), write(','), write(Y), write(') --> (4,'), write(Y), write(')'), nl,
+    state(4, Y).
+
+% Fill the 3-gallon jug if it's not already full
+state(X, Y) :-
+    Y < 3,
+    \+ visited_state(X, 3),
+    asserta(visited_state(X, 3)),
+    write('Fill the 3-Gallon Jug: ('), write(X), write(','), write(Y), write(') --> ('), write(X), write(',3)'), nl,
+    state(X, 3).
+
+% Empty the 4-gallon jug on the ground if it has water
+state(X, Y) :-
+    X > 0,
+    \+ visited_state(0, Y),
+    asserta(visited_state(0, Y)),
+    write('Empty the 4-Gallon jug on ground: ('), write(X), write(','), write(Y), write(') --> (0,'), write(Y), write(')'), nl,
+    state(0, Y).
+
+% Empty the 3-gallon jug on the ground if it has water
+state(X, Y) :-
+    Y > 0,
+    \+ visited_state(X, 0),
+    asserta(visited_state(X, 0)),
+    write('Empty the 3-Gallon jug on ground: ('), write(X), write(','), write(Y), write(') --> ('), write(X), write(',0)'), nl,
+    state(X, 0).
+
+% Pour water from the 3-gallon jug into the 4-gallon jug until it’s full
+state(X, Y) :-
+    X + Y >= 4,
+    Y > 0,
+    NEW_Y is Y - (4 - X),
+    \+ visited_state(4, NEW_Y),
+    asserta(visited_state(4, NEW_Y)),
+    write('Pour water from 3-Gallon jug to 4-gallon until it is full: ('), write(X), write(','), write(Y), write(') --> (4,'), write(NEW_Y), write(')'), nl,
+    state(4, NEW_Y).
+
+% Pour water from the 4-gallon jug into the 3-gallon jug until it’s full
+state(X, Y) :-
+    X + Y >= 3,
+    X > 0,
+    NEW_X is X - (3 - Y),
+    \+ visited_state(NEW_X, 3),
+    asserta(visited_state(NEW_X, 3)),
+    write('Pour water from 4-Gallon jug to 3-gallon until it is full: ('), write(X), write(','), write(Y), write(') --> ('), write(NEW_X), write(',3)'), nl,
+    state(NEW_X, 3).
+
+% Pour all the water from the 3-gallon jug into the 4-gallon jug
+state(X, Y) :-
+    X + Y =< 4,
+    Y > 0,
+    NEW_X is X + Y,
+    \+ visited_state(NEW_X, 0),
+    asserta(visited_state(NEW_X, 0)),
+    write('Pour all the water from 3-Gallon jug to 4-gallon: ('), write(X), write(','), write(Y), write(') --> ('), write(NEW_X), write(',0)'), nl,
+    state(NEW_X, 0).
+
+% Pour all the water from the 4-gallon jug into the 3-gallon jug
+state(X, Y) :-
+    X + Y =< 3,
+    X > 0,
+    NEW_Y is X + Y,
+    \+ visited_state(0, NEW_Y),
+    asserta(visited_state(0, NEW_Y)),
+    write('Pour all the water from 4-Gallon jug to 3-gallon: ('), write(X), write(','), write(Y), write(') --> (0,'), write(NEW_Y), write(')'), nl,
+    state(0, NEW_Y).
+
+% Special case to handle reaching the goal state of 2 gallons in the 4-gallon jug
+state(0, 2) :-
+    \+ visited_state(2, 0),
+    asserta(visited_state(2, 0)),
+    write('Pour 2 gallons from 3-Gallon jug to 4-gallon: (0, 2) --> (2, 0)'), nl.
+
+% Goal predicate to start the process and define initial conditions
+goal :-
+    retractall(visited_state(_, _)), % Clear any previous states
+    state(0, 0).
+
+% Initialization directive to run the goal when the program starts
+:- initialization(goal).
