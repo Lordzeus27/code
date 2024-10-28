@@ -1,0 +1,46 @@
+import numpy as np
+import math
+from data_loader import read_data
+
+class Node:
+    def __init__(self, attribute, answer=""):
+        self.attribute, self.answer, self.children = attribute, answer, []
+
+def subtables(data, col, delete=False):
+    items = np.unique(data[:, col])
+    dict_subtables = {item: data[data[:, col] == item] for item in items}
+    if delete:
+        dict_subtables = {k: np.delete(v, col, axis=1) for k, v in dict_subtables.items()}
+    return items, dict_subtables
+
+def entropy(S):
+    _, counts = np.unique(S, return_counts=True)
+    probabilities = [c / len(S) for c in counts]
+    return -sum(p * math.log2(p) for p in probabilities if p > 0)
+
+def gain_ratio(data, col):
+    total_size, total_entropy = len(data), entropy(data[:, -1])
+    items, dict_subtables = subtables(data, col)
+    entropies = sum((len(subtable) / total_size) * entropy(subtable[:, -1]) for subtable in dict_subtables.values())
+    intrinsic = -sum((len(subtable) / total_size) * math.log2(len(subtable) / total_size) for subtable in dict_subtables.values() if len(subtable) > 0)
+    return (total_entropy - entropies) / intrinsic if intrinsic else 0
+
+def create_node(data, metadata):
+    if len(np.unique(data[:, -1])) == 1:
+        return Node("", data[0, -1])
+    split = np.argmax([gain_ratio(data, col) for col in range(data.shape[1] - 1)])
+    items, dict_subtables = subtables(data, split, delete=True)
+    node = Node(metadata[split])
+    node.children = [(item, create_node(subtable, np.delete(metadata, split))) for item, subtable in dict_subtables.items()]
+    return node
+
+def print_tree(node, level=0):
+    print(" " * level, node.answer or node.attribute)
+    for value, child in node.children:
+        print(" " * (level + 1), value)
+        print_tree(child, level + 2)
+
+# Load data and build tree
+metadata, data = read_data("tennis.csv")
+node = create_node(np.array(data), metadata)
+print_tree(node)
